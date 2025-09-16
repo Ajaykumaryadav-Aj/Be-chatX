@@ -13,7 +13,6 @@ const db = admin.firestore();
 const app = express();
 app.use(bodyParser.json());
 
-// Send notification by userId
 app.post("/send", async (req, res) => {
   const { userId, title, body } = req.body;
 
