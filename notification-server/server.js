@@ -22,7 +22,6 @@ app.post("/send", async (req, res) => {
   }
 
   try {
-    // Get recipient token from Firestore
     const userDoc = await db.collection("users").doc(userId).get();
     const token = userDoc.data()?.fcmToken;
 
