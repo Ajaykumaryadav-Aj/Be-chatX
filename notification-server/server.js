@@ -52,69 +52,56 @@
 // const PORT = process.env.PORT || 3000;
 // app.listen(PORT, () => console.log(`🚀 Notification server running on port ${PORT}`));
 
-
-
 import express from "express";
 import bodyParser from "body-parser";
 import admin from "firebase-admin";
 import fs from "fs";
-
-let serviceAccount;
-
-if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-  try {
-    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-    console.log("✅ Loaded Firebase service account from ENV");
-  } catch (err) {
-    console.error("❌ Failed to parse FIREBASE_SERVICE_ACCOUNT env", err);
-    process.exit(1);
-  }
-} else {
-  try {
-    serviceAccount = JSON.parse(
-      fs.readFileSync("./firebase-service-account.json", "utf8")
-    );
-    console.log("✅ Loaded Firebase service account from file");
-  } catch (err) {
-    console.error("❌ Missing firebase-service-account.json locally", err);
-    process.exit(1);
-  }
-}
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
+import cors from "cors";
 
 const app = express();
 app.use(bodyParser.json());
+app.use(cors());
 
-app.get("/", (req, res) => {
-  res.send({ success: true, message: "Notification server running 🚀" });
+let serviceAccount;
+
+// Check if the service account file exists
+try {
+  const fileContent = fs.readFileSync("./firebase-service-account.json", "utf8");
+  serviceAccount = JSON.parse(fileContent);
+  console.log("✅ Loaded Firebase service account from file");
+} catch (err) {
+  console.error("❌ Missing or invalid firebase-service-account.json locally", err);
+  process.exit(1);
+}
+
+// Initialize Firebase admin
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: "https://chat-x-87a45.firebaseio.com",
 });
 
-// Send notification with raw token
+const db = admin.firestore();
+
+// Example route to test notification sending
 app.post("/send", async (req, res) => {
   const { token, title, body } = req.body;
 
   if (!token || !title || !body) {
-    return res.status(400).send({ success: false, message: "Missing fields" });
+    return res.status(400).json({ success: false, message: "Missing fields" });
   }
 
-  const message = {
-    notification: { title, body },
-    token,
-  };
-
   try {
-    await admin.messaging().send(message);
-    res.status(200).send({ success: true, message: "Notification sent" });
-  } catch (error) {
-    console.error("❌ Error sending notification:", error);
-    res.status(500).send({ success: false, error: error.message });
+    await admin.messaging().send({
+      token,
+      notification: { title, body },
+    });
+    res.json({ success: true, message: "Notification sent" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () =>
-  console.log(`🚀 Notification server running on port ${PORT}`)
-);
+// Start server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`🚀 Notification server running on port ${PORT}`));
