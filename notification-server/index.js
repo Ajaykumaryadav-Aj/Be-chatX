@@ -55,53 +55,32 @@
 import express from "express";
 import bodyParser from "body-parser";
 import admin from "firebase-admin";
-import fs from "fs";
 import cors from "cors";
 
 const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
+// Load Firebase credentials from environment variable
 let serviceAccount;
 
-// Check if the service account file exists
 try {
-  const fileContent = fs.readFileSync("./firebase-service-account.json", "utf8");
-  serviceAccount = JSON.parse(fileContent);
-  console.log("✅ Loaded Firebase service account from file");
+  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  console.log("✅ Loaded Firebase service account from env");
 } catch (err) {
-  console.error("❌ Missing or invalid firebase-service-account.json locally", err);
+  console.error("❌ Missing or invalid Firebase service account:", err);
   process.exit(1);
 }
 
-// Initialize Firebase admin
+// Initialize Firebase Admin
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://chat-x-87a45.firebaseio.com",
 });
 
-const db = admin.firestore();
-
-// Example route to test notification sending
-app.post("/send", async (req, res) => {
-  const { token, title, body } = req.body;
-
-  if (!token || !title || !body) {
-    return res.status(400).json({ success: false, message: "Missing fields" });
-  }
-
-  try {
-    await admin.messaging().send({
-      token,
-      notification: { title, body },
-    });
-    res.json({ success: true, message: "Notification sent" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, error: err.message });
-  }
+// Example route
+app.get("/", (req, res) => {
+  res.send("Notification server running!");
 });
 
-// Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Notification server running on port ${PORT}`));
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
