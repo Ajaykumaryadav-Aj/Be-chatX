@@ -63,7 +63,6 @@ app.use(cors());
 
 // Load Firebase credentials from environment variable
 let serviceAccount;
-
 try {
   serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
   console.log("✅ Loaded Firebase service account from env");
@@ -77,9 +76,31 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
 
-// Example route
+// Root route for health check
 app.get("/", (req, res) => {
   res.send("Notification server running!");
+});
+
+// POST /send route to send FCM notifications
+app.post("/send", async (req, res) => {
+  const { token, title, body } = req.body;
+
+  if (!token || !title || !body) {
+    return res.status(400).send({ success: false, message: "Missing fields" });
+  }
+
+  const message = {
+    notification: { title, body },
+    token,
+  };
+
+  try {
+    await admin.messaging().send(message);
+    return res.status(200).send({ success: true, message: "Notification sent" });
+  } catch (error) {
+    console.error("❌ Error sending notification:", error);
+    return res.status(500).send({ success: false, error: error.message });
+  }
 });
 
 const PORT = process.env.PORT || 4000;
