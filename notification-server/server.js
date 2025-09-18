@@ -61,7 +61,6 @@ import fs from "fs";
 
 let serviceAccount;
 
-// ✅ Use ENV on Render, JSON file locally
 if (process.env.FIREBASE_SERVICE_ACCOUNT) {
   try {
     serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
@@ -89,7 +88,6 @@ admin.initializeApp({
 const app = express();
 app.use(bodyParser.json());
 
-// Simple route to check if backend works
 app.get("/", (req, res) => {
   res.send({ success: true, message: "Notification server running 🚀" });
 });
